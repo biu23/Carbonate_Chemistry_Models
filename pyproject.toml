@@ -12,6 +12,8 @@ jupyterlab = "^4.0.2"
 xarray = "0.21.1"
 matplotlib = "^3.7.1"
 python-language-server = {extras = ["all"], version = "^0.36.2"}
+netcdf4 = "^1.6.4"
+h5netcdf = "^1.2.0"
 
 
 [build-system]
