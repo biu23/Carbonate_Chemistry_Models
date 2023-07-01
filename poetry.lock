@@ -468,6 +468,25 @@ files = [
 ]
 
 [[package]]
+name = "cmocean"
+version = "3.0.3"
+description = "Colormaps for Oceanography"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "cmocean-3.0.3-py3-none-any.whl", hash = "sha256:a23e4b7893e05dfd958931df53fc0e31bca09a572c13d78158a79ade47dc44bf"},
+    {file = "cmocean-3.0.3.tar.gz", hash = "sha256:abaf99383c1a60f52970c86052ae6c14eafa84fc16984488040283c02db77c0b"},
+]
+
+[package.dependencies]
+matplotlib = "*"
+numpy = "*"
+packaging = "*"
+
+[package.extras]
+plots = ["colorspacious", "viscm"]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -2585,6 +2604,19 @@ doc = ["pytoolconfig[doc]", "sphinx (>=4.5.0)", "sphinx-autodoc-typehints (>=1.1
 release = ["pip-tools (>=6.12.1)", "toml (>=0.10.2)", "twine (>=4.0.2)"]
 
 [[package]]
+name = "seawater"
+version = "3.3.4"
+description = "Seawater Library for Python"
+optional = false
+python-versions = "*"
+files = [
+    {file = "seawater-3.3.4.tar.gz", hash = "sha256:1ec2c21b9fac3133d5c18ab654e3ff7c7167d9f437fcc16ee8d355e609533411"},
+]
+
+[package.dependencies]
+numpy = "*"
+
+[[package]]
 name = "send2trash"
 version = "1.8.2"
 description = "Send file to trash natively under Mac OS X, Windows and Linux"
@@ -3098,4 +3130,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "25c2c0357615329d936df45392f5ff69a6eac7926297a578fb441aa7b46c7e4b"
+content-hash = "94f34669268c4a4fb4ee6b9547a475d57320d2a08ec62797505219b8f7a3ffd5"
