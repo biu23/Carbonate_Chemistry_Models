@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "mai_workspace"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 jupyterlab = "^4.0.2"
 xarray = "0.21.1"
 matplotlib = "^3.7.1"
@@ -17,6 +17,7 @@ h5netcdf = "^1.2.0"
 dask = "^2023.6.1"
 cmocean = "^3.0.3"
 seawater = "^3.3.4"
+numpy = "^1.25.0"
 
 
 [build-system]
