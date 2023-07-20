@@ -30,64 +30,68 @@ import os
 import csv
 import argparse
 
+pwd = "/gpfs/home/gdg21vsa/ModelEvaluation/"
+
+# mask and region
+regs = ['ARCTIC', 'P1', 'P2', 'P3', 'P4', 'P5', 'A1', 'A2', 'A3', 'A4', 'A5', 'I3', 'I4', 'I5']
+
+regdict = {'ARCTIC' : {'number' : 0.5},
+        'P1' : {'number': 1.0},
+        'P2' : {'number': 1.2},
+        'P3' : {'number': 1.4},
+        'P4' : {'number': 1.6},
+        'P5' : {'number': 1.8},
+            'A1' : {'number': 2.4},
+        'A2' : {'number': 2.6},
+        'A3' : {'number': 2.8},
+        'A4' : {'number': 3},
+        'A5' : {'number': 3.2},
+        'I3' : {'number': 3.6},
+        'I4' : {'number': 3.8},
+        'I5' : {'number': 4},
+        
+        }
+    
+tics = []
+tcm = 'Spectral'
+tmask = nc.Dataset('/gpfs/data/greenocean/software/resources/breakdown/clq_basin_masks_ORCA.nc')
+
+maskno = np.zeros([149,182])
+for i in range(0, len(regs)):
+    maskno[tmask[regs[i]][:] == 1] = regdict[regs[i]]['number']
+    tics.append(regdict[regs[i]]['number'])
+maskno[maskno == 0] = np.nan
+
+
+w = plt.pcolor(maskno, cmap = tcm, vmin = 0.5, vmax = 4)
+cbar = plt.colorbar(w, ticks=tics)
+t = cbar.ax.set_yticklabels(['ARCTIC', 'P1', 'P2', 'P3', 'P4', 'P5', 'A1', 'A2', 'A3', 'A4', 'A5', 'I3', 'I4', 'I5'], fontsize = 9)
+plt.suptitle('ocean regions, subdivided')
+
+fact = 0.2
+fig = plt.figure(figsize=(30*fact,15*fact))
+
+cmap = matplotlib.cm.get_cmap('Spectral')
+norm = matplotlib.colors.Normalize(vmin=0.5, vmax=4)
+
+for i in range(0,len(regs)):
+    rgba = cmap(norm(regdict[regs[i]]['number']))
+    plt.plot(regdict[regs[i]]['number'], 1, marker = 'o', color = rgba, label = regs[i])
+    regdict[regs[i]]['colour'] = rgba
+plt.legend(ncol = 5, fontsize = 10)
+plt.suptitle('colours assigned')
+
+mean_masks = np.zeros([len(regs), 149, 182])
+for i, reg in enumerate(regs):
+    mean_masks[i][maskno == regdict[reg]['number']] = 1
+
+
 
 def ModelEvaluation (modlist, yrst=1990, yrend=2020):
     
-    # mask and region
-    regs = ['ARCTIC', 'P1', 'P2', 'P3', 'P4', 'P5', 'A1', 'A2', 'A3', 'A4', 'A5', 'I3', 'I4', 'I5']
-
-    regdict = {'ARCTIC' : {'number' : 0.5},
-            'P1' : {'number': 1.0},
-            'P2' : {'number': 1.2},
-            'P3' : {'number': 1.4},
-            'P4' : {'number': 1.6},
-            'P5' : {'number': 1.8},
-                'A1' : {'number': 2.4},
-            'A2' : {'number': 2.6},
-            'A3' : {'number': 2.8},
-            'A4' : {'number': 3},
-            'A5' : {'number': 3.2},
-            'I3' : {'number': 3.6},
-            'I4' : {'number': 3.8},
-            'I5' : {'number': 4},
-            
-            }
-        
-    tics = []
-    tcm = 'Spectral'
-    tmask = nc.Dataset('/gpfs/data/greenocean/software/resources/breakdown/clq_basin_masks_ORCA.nc')
-
-    maskno = np.zeros([149,182])
-    for i in range(0, len(regs)):
-        maskno[tmask[regs[i]][:] == 1] = regdict[regs[i]]['number']
-        tics.append(regdict[regs[i]]['number'])
-    maskno[maskno == 0] = np.nan
-
-
-    w = plt.pcolor(maskno, cmap = tcm, vmin = 0.5, vmax = 4)
-    cbar = plt.colorbar(w, ticks=tics)
-    t = cbar.ax.set_yticklabels(['ARCTIC', 'P1', 'P2', 'P3', 'P4', 'P5', 'A1', 'A2', 'A3', 'A4', 'A5', 'I3', 'I4', 'I5'], fontsize = 9)
-    plt.suptitle('ocean regions, subdivided')
-
-    fact = 0.2
-    fig = plt.figure(figsize=(30*fact,15*fact))
-
-    cmap = matplotlib.cm.get_cmap('Spectral')
-    norm = matplotlib.colors.Normalize(vmin=0.5, vmax=4)
-
-    for i in range(0,len(regs)):
-        rgba = cmap(norm(regdict[regs[i]]['number']))
-        plt.plot(regdict[regs[i]]['number'], 1, marker = 'o', color = rgba, label = regs[i])
-        regdict[regs[i]]['colour'] = rgba
-    plt.legend(ncol = 5, fontsize = 10)
-    plt.suptitle('colours assigned')
-
-    mean_masks = np.zeros([len(regs), 149, 182])
-    for i, reg in enumerate(regs):
-        mean_masks[i][maskno == regdict[reg]['number']] = 1
+    directory_path = os.path.join(pwd, modlist)
 
     # create directory, save csv function
-
     def create_directory(directory_path):
         if not os.path.exists(directory_path):
             os.makedirs(directory_path)
@@ -97,11 +101,9 @@ def ModelEvaluation (modlist, yrst=1990, yrend=2020):
             writer = csv.writer(csvfile)
             writer.writerows(data)
 
-
-    directory_path = os.path.join("/gpfs/home/gdg21vsa/ModelEvaluation/", modlist)
     create_directory(directory_path)
 
-# loading data
+    # loading data
     # GLODAP
     df = pd.read_csv('/gpfs/home/mep22dku/scratch/SOZONE/evalOutput/datasets/GLODAPv2.2022_GLOBAL_valid_DICTA_umolL_STITCHED.csv')
     df = df[(df.YR >= yrst) & (df.YR <= yrend)]
@@ -148,7 +150,7 @@ def ModelEvaluation (modlist, yrst=1990, yrend=2020):
     modnam = modlist
     tylist = make_yearlist(yrst, yrend, dtype, modnam, baseDir)
     tdat_MOD = xr.open_mfdataset(tylist)
-
+    
     tdat_MOD_0 = tdat_MOD.isel(deptht= depth)
 
     # save DIC as Dataframe
