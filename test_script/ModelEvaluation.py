@@ -28,6 +28,7 @@ plt.rc('font', **font)
 import matplotlib
 import os
 import csv
+import argparse
 
 
 def ModelEvaluation (modlist, yrst=1990, yrend=2020):
@@ -362,6 +363,16 @@ def ModelEvaluation (modlist, yrst=1990, yrend=2020):
     csv_file_path = os.path.join(directory_path, f'{yrst}-{yrend}_{modlist}_data_evaluation.csv')
     data_evaluation.to_csv(csv_file_path, index=False)
 
+if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser(description='Calculating and plotting data using command line arguments')
+    parser.add_argument('modlist', type=str, help='one model name')
+    parser.add_argument('--yrst',  type=int, default=1990, help='Model data start year, default 1990')
+    parser.add_argument('--yrend', type=int, default=2020, help='Model data end year, default 2020')
+    
+    args = parser.parse_args()
+    
+    ModelEvaluation(args.modlist, yrst=args.yrst, yrend=args.yrend)
 
 
 
