@@ -310,7 +310,7 @@ def ModelEvaluation (modlist, yrst=1990, yrend=2020):
     image_file_path = os.path.join(directory_path, f'{yrst}-{yrend}Surface_TA-DIC.png')
     plt.savefig(image_file_path)
 
-    # (2) DATA: selected model evaluation metrics
+    # EVALUATION METRICS & SAVE .csv
     def bias_box(obs,mod):
         bias = (-np.mean(obs) + np.mean(mod))
         return bias
@@ -324,36 +324,92 @@ def ModelEvaluation (modlist, yrst=1990, yrend=2020):
         WSS = (1-(np.sum((mod - obs)**2)  / np.sum((np.abs(mod - xbar) + np.abs(obs - xbar))**2)))
         return WSS
     
-    # merge data
-    m_obs_DIC = np.array(tdat_merge_modDIC['obs_DIC'][:])
-    m_mod_DIC = np.array(tdat_merge_modDIC['DIC'][:])
+    # Global metrics calculate
+    all_DIC_nonan = tdat_merge_modDIC.dropna()
+    all_TA_nonan = tdat_merge_modTA.dropna()
 
-    m_obs_TA = np.array(tdat_merge_modTA['obs_TA'][:])
-    m_mod_TA = np.array(tdat_merge_modTA['Alkalini'][:])
+    all_TADIC_nonan = pd.concat([all_TA_nonan, all_DIC_nonan], axis=1)
+    all_TADIC_nonan = all_TADIC_nonan.iloc[:, :-2]
+    all_TADIC_nonan['mod_TA-DIC'] = all_TADIC_nonan['Alkalini']-all_TADIC_nonan['DIC']
+    all_TADIC_nonan['obs_TA-DIC'] = all_TADIC_nonan['obs_TA']-all_TADIC_nonan['obs_DIC']
+    all_TADIC_nonan = all_TADIC_nonan.loc[:, ['mod_TA-DIC','obs_TA-DIC','REG','REG_Group']]
+
+    bias_DIC = bias_box(all_DIC_nonan['obs_DIC'].values, all_DIC_nonan['DIC'].values)
+    RMSE_DIC = RMSE_box(all_DIC_nonan['obs_DIC'].values, all_DIC_nonan['DIC'].values)
+    WSS_DIC = WSS_box(all_DIC_nonan['obs_DIC'].values, all_DIC_nonan['DIC'].values)
+
+    bias_TA = bias_box(all_TA_nonan['obs_TA'].values, all_TA_nonan['Alkalini'].values)
+    RMSE_TA = RMSE_box(all_TA_nonan['obs_TA'].values, all_TA_nonan['Alkalini'].values)
+    WSS_TA = WSS_box(all_TA_nonan['obs_TA'].values, all_TA_nonan['Alkalini'].values)
+
+    bias_TADIC = bias_box(all_TADIC_nonan['obs_TA-DIC'].values, all_TADIC_nonan['mod_TA-DIC'].values)
+    RMSE_TADIC = RMSE_box(all_TADIC_nonan['obs_TA-DIC'].values, all_TADIC_nonan['mod_TA-DIC'].values)
+    WSS_TADIC = WSS_box(all_TADIC_nonan['obs_TA-DIC'].values, all_TADIC_nonan['mod_TA-DIC'].values)
+
+    result_global = [
+        {'evaluation_metrics':'bias' ,'DIC': bias_DIC, 'TA': bias_TA, 'TA-DIC': bias_TADIC}, 
+        {'evaluation_metrics':'RMSE_DIC' ,'DIC': RMSE_DIC, 'TA': RMSE_TA, 'TA-DIC': RMSE_TADIC},
+        {'evaluation_metrics':'WSS' ,'DIC': WSS_DIC,  'TA': WSS_TA,  'TA-DIC': WSS_TADIC}
+    ]
+    result_global = pd.DataFrame(result_global)
+    
+    data_global = pd.concat([all_TA_nonan, all_DIC_nonan], axis=1)
+    data_global = data_global.iloc[:, :-2]
+    data_global = data_global.loc[:, ['REG','Alkalini','obs_TA','DIC','obs_DIC']]
+
+    savedata0_global = pd.concat([data_global, result_global], axis=1)
+    csv_file_path = os.path.join(directory_path, f'{yrst}-{yrend}_{modlist}_bias_RMSE_WSS_mean_umolL_global.csv')
+    savedata0_global.to_csv(csv_file_path, index=False)
+
+    # Region metrics calculate
+    # create a empty DataFrame to save result
+    result_metric1 = pd.DataFrame(columns=['REG', 'bias_DIC','RMSE_DIC','WSS_DIC'])
+
+    result_metric2 = pd.DataFrame(columns=['REG', 'bias_TA','RMSE_TA','WSS_TA',])
+
+    result_metric3 = pd.DataFrame(columns=['REG', 'bias_TA-DIC','RMSE_TA-DIC','WSS_TA-DIC'])
+
+    #Use a loop to traverse the different REG_Groups, calculate the bias, and add the result to result_metric
+    for reg_group, group_data in all_DIC_nonan.groupby('REG_Group'):
+        obs_values = group_data['obs_DIC'].values
+        mod_values = group_data['DIC'].values
+
+        bias_DIC = bias_box(obs_values, mod_values)
+        RMSE_DIC = RMSE_box(obs_values, mod_values)
+        WSS_DIC = WSS_box(obs_values, mod_values)
+
+        result_metric1 = result_metric1.append({'REG': reg_group, 'bias_DIC': bias_DIC,'RMSE_DIC':RMSE_DIC ,'WSS_DIC':WSS_DIC,}, ignore_index=True)
+
+    for reg_group, group_data in all_TA_nonan.groupby('REG_Group'):
+        obs_values = group_data['obs_TA'].values
+        mod_values = group_data['Alkalini'].values
+
+        bias_TA = bias_box(obs_values, mod_values)
+        RMSE_TA = RMSE_box(obs_values, mod_values)
+        WSS_TA = WSS_box(obs_values, mod_values)
+
+        result_metric2 = result_metric2.append({'REG': reg_group, 'bias_TA':bias_TA,'RMSE_TA':RMSE_TA,'WSS_TA':WSS_TA}, ignore_index=True)
+
+    for reg_group, group_data in all_TADIC_nonan.groupby('REG_Group'):
+        obs_values = group_data['obs_TA-DIC'].values
+        mod_values = group_data['mod_TA-DIC'].values
+
+        bias_TADIC = bias_box(obs_values, mod_values)
+        RMSE_TADIC = RMSE_box(obs_values, mod_values)
+        WSS_TADIC = WSS_box(obs_values, mod_values)
+
+        result_metric3 = result_metric3.append({'REG': reg_group, 'bias_TA-DIC':bias_TADIC,'RMSE_TA-DIC':RMSE_TADIC,'WSS_TA-DIC':WSS_TADIC}, ignore_index=True)
 
 
-    mask = ~np.isnan(m_mod_DIC) & ~np.isnan(m_mod_TA)
-    bias_DIC = bias_box(m_obs_DIC[mask], m_mod_DIC[mask]*1e6)
-    RMSE_DIC = RMSE_box(m_obs_DIC[mask], m_mod_DIC[mask]*1e6)
-    WSS_DIC = WSS_box(m_obs_DIC[mask], m_mod_DIC[mask]*1e6)
+    result_metric = pd.merge(result_metric1, result_metric2, on='REG')
+    result_metric = pd.merge(result_metric, result_metric3, on='REG')
 
-    bias_TA = bias_box(m_obs_TA[mask],m_mod_TA[mask]*1e6)
-    RMSE_TA = RMSE_box(m_obs_TA[mask],m_mod_TA[mask]*1e6)
-    WSS_TA = WSS_box(m_obs_TA[mask],m_mod_TA[mask]*1e6)
+    savedata1_region = pd.merge(result_metric, tdat_merge_modTA_mean, on='REG')
+    savedata1_region = pd.merge(savedata1_region, tdat_merge_modDIC_mean, on='REG')
 
-    bias_TADIC = bias_box(m_obs_TA[mask]- m_obs_DIC[mask], (m_mod_TA[mask]-m_mod_DIC[mask])*1e6)
-    RMSE_TADIC = RMSE_box(m_obs_TA[mask]- m_obs_DIC[mask], (m_mod_TA[mask]-m_mod_DIC[mask])*1e6)
-    WSS_TADIC = WSS_box(m_obs_TA[mask]- m_obs_DIC[mask], (m_mod_TA[mask]-m_mod_DIC[mask])*1e6)
+    csv_file_path = os.path.join(directory_path, f'{yrst}-{yrend}_{modlist}_bias_RMSE_WSS_mean_umolL_region.csv')
+    savedata1_region.to_csv(csv_file_path, index=False)
 
-    data_evaluation = [
-    {'evaluation_metrics':'bias' ,'DIC': bias_DIC, 'TA': bias_TA, 'TA-DIC': bias_TADIC}, 
-    {'evaluation_metrics':'RMSE_DIC' ,'DIC': RMSE_DIC, 'TA': RMSE_TA, 'TA-DIC': RMSE_TADIC},
-    {'evaluation_metrics':'WSS' ,'DIC': WSS_DIC,  'TA': WSS_TA,  'TA-DIC': WSS_TADIC}]
-
-    data_evaluation = pd.DataFrame(data_evaluation)
-
-    csv_file_path = os.path.join(directory_path, f'{yrst}-{yrend}_{modlist}_data_evaluation.csv')
-    data_evaluation.to_csv(csv_file_path, index=False)
 
 if __name__ == "__main__":
     
